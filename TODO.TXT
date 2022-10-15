@@ -1,0 +1,2 @@
+- The quality of the image drops - investigate.
+- Clicking the image takes you to the original url.

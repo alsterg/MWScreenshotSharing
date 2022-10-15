@@ -12,7 +12,7 @@ chrome.action.onClicked.addListener(async function (tab) {
     let tabIndex = tab.index
     if (streamId && streamId.length) {
       setTimeout(() => {
-        chrome.tabs.sendMessage(tab.id, { name: "stream", streamId, tabIndex },
+        chrome.tabs.sendMessage(tab.id, { name: "screenshot", streamId, tabIndex },
           (response) => console.log(response))
       }, 200)
     }
@@ -20,25 +20,26 @@ chrome.action.onClicked.addListener(async function (tab) {
 })
 
 chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
-  if (message.name === 'post' && message.data) {
-    let url = chrome.runtime.getURL("post.html")
+  if (message.name === 'crop' && message.data) {
+    let url = chrome.runtime.getURL("edit.html")
     chrome.tabs.create(
       { active: true, index: message.tabIndex + 1, url: url },
       function(tab) {
         var handler = function(tabId, changeInfo) {
           if(tabId === tab.id && changeInfo.status === "complete"){
             chrome.tabs.onUpdated.removeListener(handler);
-            chrome.tabs.sendMessage(tabId, {url: url, data: message.data});
+            chrome.tabs.sendMessage(tab.id, { url: url, data: message.data }, (response) => {
+              console.log(response);
+              // XXX Upload and copy link to clipboard
+              senderResponse(response);
+            });
           }
         };
-  
-        // in case we're faster than page load (usually):
         chrome.tabs.onUpdated.addListener(handler);
-        // just in case we're too late with the listener:
-        chrome.tabs.sendMessage(tab.id, {url: url, data: message.data});
       }
-    ); 
+    );
 
     return true;
   }
+  senderResponse({ success: false, message: "Unrecognized: " + message.name });
 })

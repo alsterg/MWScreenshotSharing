@@ -1,8 +1,23 @@
 <html>
-  <head><script src="edit.js"></script></head>
+  <head>
+    <title>Capture, edit and share screenshots</title>
+    <link rel="stylesheet" href="edit.css">
+    <script src="edit.js"></script>
+  </head>
   <body>
-    <p align="center">
-        <canvas id="canvas" width=0 height=0></canvas>
-    </p>
+    <div id="toolbox">
+      <button id="Share" class="share">Share!</button>
+      <button id="Arrow" class="tool">Arrow</button>
+      <button id="Text" class="tool">Text</button>
+      <button id="Pencil" class="tool">Pencil</button>
+      <button id="Line" class="tool">Line</button>
+      <button id="Rectangle" class="tool">Rectangle</button>
+      <button id="Circle" class="tool">Circle</button>
+      <button id="Eraser" class="tool">Eraser</button>
+      <button id="Undo" class="tool">Undo</button>
+    </div>
+    <div>
+        <canvas id="screenshot" width=0 height=0/>
+    </div>
   </body>
 </html>

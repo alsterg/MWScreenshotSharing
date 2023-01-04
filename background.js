@@ -1,5 +1,6 @@
 /* This executed when the user clicks on the extension button */
 chrome.action.onClicked.addListener(function (tab) {
+  console.log("Entering 'onClicked' handler");
   chrome.scripting.executeScript({
     target: { tabId: tab.id, allFrames: false },
     files: ["content_script.js"],
@@ -12,18 +13,14 @@ chrome.action.onClicked.addListener(function (tab) {
       //check whether the user canceled the request or not
       let tabIndex = tab.index
       if (streamId && streamId.length) {
-        setTimeout(() => {
+        setTimeout(() => {  // Give time for the "Choose what to share" window to close
           chrome.tabs.sendMessage(tab.id, { name: "screenshot", streamId, tabIndex, url: tab.url.slice() },
-            (response) => {
+            async (response) => {
               if (!response.success)
                 console.error("Error: " + response.message);
               else {
-                chrome.tabs.update(
-                  response.tabid,
-                  { url: response.link },
-                  () => {
-                    console.log("Redirected to: " + response.link);
-                  });
+                // redirect
+                await chrome.tabs.update(response.tabid, { url: response.link });
               }
             });
         }, 200);
@@ -34,6 +31,7 @@ chrome.action.onClicked.addListener(function (tab) {
 
 /* Load editor and send img data to render captured image */
 chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
+  console.log("Entering 'edit' handler");
   if (message.name === 'edit' && message.data) {
     let url = chrome.runtime.getURL("edit.html")
     chrome.tabs.create(
@@ -44,6 +42,7 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
             chrome.tabs.onUpdated.removeListener(handler);
             chrome.tabs.sendMessage(tabId, { name: 'crop', url: message.url, data: message.data }, (response) => {
               response.tabid = tabId;
+              console.log("Returning 'edit' handler");
               console.log(response);
               senderResponse(response);  // propagate up the stack
             });

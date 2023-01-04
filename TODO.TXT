@@ -1,12 +1,9 @@
 P1:
-- Arrow, Text
 - generated png should only include selected area
 - the final image has a different zoom than original & edit stage
 
 P2
-- Undo
-- The quality of the image drops - investigate.
-  - Fix: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas
+- Undo button.
 - Place all configuration options is a separate file.
 - Button to copy image instead of URL.
 - Autoscroll when mouse is out of canvas ('onmouseout').

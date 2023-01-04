@@ -100,14 +100,37 @@ function crop(senderResponse, canvas, image, url) {
 /* Crop & then Edit. The img data will be sent via 'senderResponse' when
    editing is over. */
 chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
+  console.log("Entering 'crop' handler");
   if (message.name != "crop") return;
   var canvas = document.getElementById("screenshot");
-  var ctx = canvas.getContext("2d", {willReadFrequently: true});
+  var ctx = canvas.getContext("2d", { willReadFrequently: true });
   var img = document.createElement("img");
   img.onload = function () {
     canvas.width = img.width
     canvas.height = img.height
+
+    /* Optimize canvas
+       Source: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas#scaling_for_high_resolution_displays
+    */
+
+    // // Get the DPR and size of the canvas
+    // const dpr = window.devicePixelRatio;
+    // const rect = canvas.getBoundingClientRect();
+
+    // // Set the "actual" size of the canvas
+    // canvas.width = rect.width * dpr;
+    // canvas.height = rect.height * dpr;
+
+    // // Scale the context to ensure correct drawing operations
+    // ctx.scale(dpr, dpr);
+
+    // // Set the "drawn" size of the canvas
+    // canvas.style.width = `${rect.width}px`;
+    // canvas.style.height = `${rect.height}px`;
+
+    //ctx.transform(0.6, 0, 0, 0.6, 0, 0);
     ctx.drawImage(img, 0, 0);
+
     crop(senderResponse, canvas, img, message.url);
   };
   img.src = message.data;
@@ -148,7 +171,7 @@ function share(canvas, senderResponse, url) {
           </div>
           </body>`
         }).then(() => {
-          console.log('Image uploaded');
+          console.log('Image uploaded: ' + base_link + '.html');
           senderResponse({success: true, link: base_link + '.html'});
         }).catch((error) => {
           console.error("ERROR: " + error);

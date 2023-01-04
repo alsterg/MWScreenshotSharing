@@ -1,9 +1,11 @@
+/* Capture screen and sent it over to "service worker" for editing */
+// NOTE: getUserMedia is not available in the service worker, hence we use this content script.
 chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     if (message.name === 'screenshot' && message.streamId) {
-        let tabIndex = message.tabIndex
-        console.log("Entering screenshot handler")
-        let track, canvas
-        // getUserMedia is not available in the service worker, hence content_script.js.
+        let tabIndex = message.tabIndex;
+        console.log("Entering screenshot handler for: " + message.url);
+        let track, canvas;
+
         navigator.mediaDevices.getUserMedia({
             video: {
                 mandatory: {
@@ -14,14 +16,12 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
         }).then((stream) => {
             track = stream.getVideoTracks()[0]
             if (track.readyState != 'live' || !track.enabled || track.muted) {
-                console.log("Could not save screenshot: not ready")
-                senderResponse({success: false, message: err})
-                return false;
+                throw Error("not ready");
             }
             const imageCapture = new ImageCapture(track)
             return imageCapture.grabFrame()
         }).then((bitmap) => {
-            track.stop()
+            track.stop();
             canvas = document.createElement('canvas');
             canvas.width = bitmap.width;
             canvas.height = bitmap.height;
@@ -32,18 +32,18 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
             context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, bitmap.width/1.5, bitmap.height/1.5)
             return canvas.toDataURL();
         }).then((data) => {
-            chrome.runtime.sendMessage({ name: 'crop', data, tabIndex }, (response) => {
-                console.log(response)
-                canvas.remove()
-                senderResponse(response)
+            // from within a message event handler, we send another message
+            chrome.runtime.sendMessage({ name: 'edit', data, tabIndex, url: message.url }, (response) => {
+                console.log(response);
+                canvas.remove();
+                senderResponse(response);  // propagate up the stack
             })
         }).catch((err) => {
-            console.log("Could not take screenshot")
-            console.log(err)
-            senderResponse({success: false, message: err})
-            return false;
+            console.error("Could not take screenshot: " + err)
+            if (canvas) canvas.remove()
+            senderResponse({success: false, message: err.message})
         })
-        return true;
+        return true;  // result will be sent async via senderResponse()
     }
-    senderResponse({ success: false, message: "Unrecognized: " + message.name });
+    console.error("Unrecognized: " + message.name);
 })

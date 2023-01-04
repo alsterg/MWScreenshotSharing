@@ -2,19 +2,25 @@
   <head>
     <title>Capture, edit and share screenshots</title>
     <link rel="stylesheet" href="edit.css">
+    <script src="asmcrypto.min.js"></script>
     <script src="edit.js"></script>
   </head>
   <body>
     <div id="toolbox">
-      <button id="Share" class="share">Share!</button>
-      <button id="Arrow" class="tool">Arrow</button>
-      <button id="Text" class="tool">Text</button>
-      <button id="Pencil" class="tool">Pencil</button>
-      <button id="Line" class="tool">Line</button>
-      <button id="Rectangle" class="tool">Rectangle</button>
-      <button id="Circle" class="tool">Circle</button>
-      <button id="Eraser" class="tool">Eraser</button>
-      <button id="Undo" class="tool">Undo</button>
+      <!--
+        Font Awesome Free is free, open source, and GPL friendly.
+        You can use it for commercial projects, open source projects,
+        or really almost whatever you want.
+        https://fontawesome.com/license/free
+      -->
+      <button id="Share" class="share"><img src="images/upload.png" width="16" height="16"></img><br/>Share!</button>
+      <button id="Arrow" class="tool"><img src="images/arrow.png" width="16" height="16"></img><br/>Arrow</button>
+      <button id="Text" class="tool"><img src="images/text.png" width="16" height="16"></img><br/>Text</button>
+      <button id="Pencil" class="tool"><img src="images/pencil.png" width="16" height="16"></img><br/>Pencil</button>
+      <button id="Line" class="tool"><img src="images/line.png" width="16" height="16"></img><br/>Line</button>
+      <button id="Rectangle" class="tool"><img src="images/rectangle.png" width="16" height="16"></img><br/>Rectangle</button>
+      <button id="Circle" class="tool"><img src="images/circle.png" width="16" height="16"></img><br/>Circle</button>
+      <button id="Eraser" class="tool"><img src="images/eraser.png" width="16" height="16"></img><br/>Eraser</button>
     </div>
     <div>
         <canvas id="screenshot" width=0 height=0/>

@@ -1,41 +1,83 @@
-function showToolbox() {
-  var canvas = document.getElementById("screenshot");
-  var toolbox = document.getElementById("toolbox");
-  toolbox.style.height = "30px";
-  toolbox.style.visibility = "visible";
-
-  document.getElementById("Arrow").onclick = function () { arrow(canvas) };
-  document.getElementById("Text").onclick = function () { text(canvas) };
-  document.getElementById("Pencil").onclick = function () { pencil(canvas) };
-  document.getElementById("Line").onclick = function() { line(canvas) };
-  document.getElementById("Rectangle").onclick = function () { rectangle(canvas) };
-  document.getElementById("Circle").onclick = function() { circle(canvas) };
-  document.getElementById("Eraser").onclick = function () { eraser(canvas) };
-  document.getElementById("Undo").onclick = function() { undo(canvas) } ;
+var pressed_bnt = null;
+function updateActiveButton(btn) {
+  if (pressed_bnt) pressed_bnt.classList.remove('active');
+  pressed_bnt = btn;
+  pressed_bnt.classList.add('active');
 }
 
-function crop(senderResponse, canvas, image) {
-  var ctx = canvas.getContext("2d");
+function resetEvents(canvas) {
+  canvas.onmousedown = null;
+  canvas.onmouseup = null;
+  canvas.onmousemove = null;
+  canvas.onclick = null;
+  window.onkeypress = null;
+}
+
+function showToolbox(senderResponse, url) {
+  var canvas = document.getElementById("screenshot");
+  var toolbox = document.getElementById("toolbox");
+
+  toolbox.style.height = "50px";
+  toolbox.style.visibility = "visible";
+
+  document.getElementById("Share").onclick = function () {
+    share(canvas, senderResponse, url);
+  };
+  document.getElementById("Arrow").onclick = function () {
+    updateActiveButton(this);
+    arrow(canvas);
+  };
+  document.getElementById("Text").onclick = function () {
+    updateActiveButton(this);
+    text(canvas);
+  };
+  document.getElementById("Pencil").onclick = function () {
+    updateActiveButton(this);
+    pencil(canvas);
+  };
+  document.getElementById("Line").onclick = function () {
+    updateActiveButton(this);
+    line(canvas);
+  };
+  document.getElementById("Rectangle").onclick = function () {
+    updateActiveButton(this);
+    rectangle(canvas);
+  };
+  document.getElementById("Circle").onclick = function () {
+    updateActiveButton(this);
+    circle(canvas);
+  };
+  document.getElementById("Eraser").onclick = function () {
+    updateActiveButton(this);
+    eraser(canvas);
+  };
+}
+
+function crop(senderResponse, canvas, image, url) {
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
   var hold = false;
   ctx.lineWidth = 2;
   ctx.setLineDash([4, 4]);
-  ctx.strokeStyle = "yellow";
+  ctx.strokeStyle = "rgb(0, 0, 0, 1)";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)"
+  canvas.style.cursor = 'crosshair';
 
   canvas.onmousedown = function (e){
-      img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      prevX = e.clientX - canvas.offsetLeft;
-      prevY = e.clientY - canvas.offsetTop;
-      hold = true;
+    img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    prevX = e.clientX - canvas.offsetLeft;
+    prevY = e.clientY - canvas.offsetTop;
+    hold = true;
   };
 
   canvas.onmousemove = function (e){
-      if (hold){
-          ctx.putImageData(img, 0, 0);
-          curX = e.clientX - canvas.offsetLeft - prevX;
-          curY = e.clientY - canvas.offsetTop - prevY;
-          ctx.strokeRect(prevX, prevY, curX, curY);
-      }
+    if (hold){
+      ctx.putImageData(img, 0, 0);
+      curX = e.clientX - canvas.offsetLeft - prevX;
+      curY = e.clientY - canvas.offsetTop - prevY;
+      ctx.strokeRect(prevX, prevY, curX, curY);
+      ctx.fillRect(prevX, prevY, curX, curY);
+    }
   };
 
   canvas.onmouseup = function(e){
@@ -49,28 +91,24 @@ function crop(senderResponse, canvas, image) {
       ctx.setLineDash([]);
       ctx.lineWidth = 2;
       ctx.strokeStyle = "red";
-      showToolbox();
-      circle(canvas)
-      senderResponse({success: true, message: "XXX"})
-    }
-  };
-
-  canvas.onmouseout = function(e){
-    if (hold) {
-      hold = false;
+      showToolbox(senderResponse, url);
+      arrow(canvas);
     }
   };
 }
 
+/* Crop & then Edit. The img data will be sent via 'senderResponse' when
+   editing is over. */
 chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
+  if (message.name != "crop") return;
   var canvas = document.getElementById("screenshot");
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var img = document.createElement("img");
   img.onload = function () {
     canvas.width = img.width
     canvas.height = img.height
     ctx.drawImage(img, 0, 0);
-    crop(senderResponse, canvas, img);
+    crop(senderResponse, canvas, img, message.url);
   };
   img.src = message.data;
   return true;
@@ -80,33 +118,163 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
  * Editing toolbox
  */
 
-var canvas_data = {
-  "pencil": [],
-  "line": [],
-  "arrow": [],
-  "rectangle": [],
-  "circle": [],
-  "eraser": [],
-  "text": [],
-  "last_action": -1
-};
+function share(canvas, senderResponse, url) {
+  canvas.toBlob((blob) => {
+    blob.arrayBuffer().then((data) => {
+      var hash = asmCrypto.SHA1.hex(data);
+      console.log("Hash: " + hash);
+      let base_link = 'https://p-screenshots.prod.mwam.local/p-screenshots.files/' + hash;
 
-function share(canvas) {
-  // XXX
+      fetch(base_link + '.png', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'image/png' },
+        body: blob
+      }).then((response) => {
+        fetch(base_link + '.html', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'text/html' },
+          body: `
+          <body>
+          <div>
+          <table width="100%" height="100%" align="center" valign="center">
+          <tr><td>
+          <p style="text-align:center;">
+          <a href="${url}">
+          <img src="${hash}.png"/>
+          </a>
+          </p>
+          </td></tr>
+          </table>
+          </div>
+          </body>`
+        }).then(() => {
+          console.log('Image uploaded');
+          senderResponse({success: true, link: base_link + '.html'});
+        }).catch((error) => {
+          console.error("ERROR: " + error);
+          senderResponse({success: false, message: error.message});
+        });
+      }).catch((error) => {
+        console.error("ERROR: " + error);
+        senderResponse({success: false, message: error.message});
+      });
+    });
+  });
 }
 
 function arrow(canvas) {
-  // XXX
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
+  var curX, curY, prevX, prevY;
+  var hold = false;
+  resetEvents(canvas);
+
+  // Source: https://dirask.com/posts/JavaScript-draw-arrow-on-canvas-element-DZ3emp
+  // arrow = shaft + tip
+  //
+  // t argument indicates in % how big should be shaft part in drawn arrow
+  // t should be in range from 0 to 1
+  // t can be interpreted as: t = shaftLength / arrowLength
+  //
+  const drawArrow = (context, x1, y1, x2, y2, t = 0.9) => {
+    const arrow = {
+        dx: x2 - x1,
+        dy: y2 - y1
+    };
+    const middle = {
+        x: arrow.dx * t + x1,
+        y: arrow.dy * t + y1
+    };
+    const tip = {
+        dx: x2 - middle.x,
+        dy: y2 - middle.y
+    };
+    context.beginPath();
+    context.moveTo(x1, y1);
+    context.lineTo(middle.x, middle.y);
+    context.moveTo(middle.x + 0.5 * tip.dy, middle.y - 0.5 * tip.dx);
+    context.lineTo(middle.x - 0.5 * tip.dy, middle.y + 0.5 * tip.dx);
+    context.lineTo(x2, y2);
+    context.closePath();
+    context.stroke();
+  };
+
+  canvas.onmousedown = function (e) {
+    img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    prevX = e.clientX - canvas.offsetLeft;
+    prevY = e.clientY - canvas.offsetTop;
+    hold = true;
+  };
+
+  canvas.onmousemove = function (e) {
+    if (hold) {
+      curX = e.clientX - canvas.offsetLeft;
+      curY = e.clientY - canvas.offsetTop;
+      ctx.putImageData(img, 0, 0);
+      drawArrow(ctx, prevX, prevY, curX, curY);
+    }
+  };
+
+  canvas.onmouseup = function (e) {
+    hold = false;
+  };
 }
 
 function text(canvas) {
-  // XXX
+  var ctx = canvas.getContext("2d", { willReadFrequently: true });
+  var curX, curY;
+  var typing = false;
+  resetEvents(canvas);
+
+  //Draw the text onto canvas:
+  function drawText(txt, x, y) {
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.font = '16px sans-serif';
+    ctx.fillStyle = "red";
+    ctx.fillText(txt, x, y);
+  }
+
+  function addInput(x, y) {
+    var input = document.createElement('input');
+
+    input.type = 'text';
+    input.style.fontSize = '16px';
+    input.style.fontFamily = 'sans-serif';
+    input.style.fontStyle = 'red';
+    input.style.position = 'fixed';
+    input.style.left = (x - 4) + 'px';
+    input.style.top = (y - 4) + 'px';
+    input.onkeydown = handleEnter;
+    document.body.appendChild(input);
+    input.focus();
+    typing = true;
+}
+
+  canvas.onclick = function (e) {
+    if (typing) return;
+    typing = true;
+    curX = e.clientX;
+    curY = e.clientY;
+    addInput(curX, curY);
+  }
+
+  function handleEnter(e) {
+    if (typing) {
+      if (e.code == "Enter") {
+        typing = false
+        drawText(this.value, curX - canvas.offsetLeft, curY - canvas.offsetTop);
+        document.body.removeChild(this);
+        return;
+      }
+    }
+  }
 }
 
 function pencil(canvas) {
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
   var hold = false;
+  resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
     curX = e.clientX - canvas.offsetLeft;
@@ -131,29 +299,17 @@ function pencil(canvas) {
     hold = false;
   };
 
-  canvas.onmouseout = function(e) {
-    hold = false;
-  };
-
   function draw() {
     ctx.lineTo(curX, curY);
     ctx.stroke();
-    canvas_data.pencil.push({
-      "startx": prevX,
-      "starty": prevY,
-      "endx": curX,
-      "endy": curY,
-      "thick": ctx.lineWidth,
-      "color": ctx.strokeStyle
-    });
-    canvas_data.last_action = 0;
   }
 }
 
 function line(canvas) {
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
   var hold = false;
+  resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -162,7 +318,7 @@ function line(canvas) {
     hold = true;
   };
 
-  canvas.onmousemove = function linemove(e) {
+  canvas.onmousemove = function(e) {
     if (hold) {
       ctx.putImageData(img, 0, 0);
       curX = e.clientX - canvas.offsetLeft;
@@ -171,32 +327,20 @@ function line(canvas) {
       ctx.moveTo(prevX, prevY);
       ctx.lineTo(curX, curY);
       ctx.stroke();
-      canvas_data.line.push({
-        "startx": prevX,
-        "starty": prevY,
-        "endx": curX,
-        "endY": curY,
-        "thick": ctx.lineWidth,
-        "color": ctx.strokeStyle
-      });
       ctx.closePath();
-      canvas_data.last_action = 1;
     }
   };
 
   canvas.onmouseup = function(e) {
     hold = false;
   };
-
-  canvas.onmouseout = function(e) {
-    hold = false;
-  };
 }
 
 function rectangle(canvas) {
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
   var hold = false;
+  resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -211,32 +355,19 @@ function rectangle(canvas) {
       curX = e.clientX - canvas.offsetLeft - prevX;
       curY = e.clientY - canvas.offsetTop - prevY;
       ctx.strokeRect(prevX, prevY, curX, curY);
-      canvas_data.rectangle.push({
-        "startx": prevX,
-        "starty": prevY,
-        "width": curX,
-        "height": curY,
-        "thick": ctx.lineWidth,
-        "stroke": false,
-        "stroke_color": ctx.strokeStyle
-      });
-      canvas_data.last_action = 2;
     }
   };
 
   canvas.onmouseup = function(e) {
     hold = false;
   };
-
-  canvas.onmouseout = function(e) {
-    hold = false;
-  };
 }
 
 function circle(canvas) {
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
   var hold = false;
+  resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -254,31 +385,20 @@ function circle(canvas) {
       ctx.arc(Math.abs(curX + prevX) / 2, Math.abs(curY + prevY) / 2, Math.sqrt(Math.pow(curX - prevX, 2) + Math.pow(curY - prevY, 2)) / 2, 0, Math.PI * 2, true);
       ctx.closePath();
       ctx.stroke();
-      canvas_data.circle.push({
-        "startx": prevX,
-        "starty": prevY,
-        "radius": curX - prevX,
-        "thick": ctx.lineWidth,
-        "stroke": false,
-        "stroke_color": ctx.strokeStyle
-      });
-      canvas_data.last_action = 3;
     }
   };
 
   canvas.onmouseup = function(e) {
     hold = false;
   };
-
-  canvas.onmouseout = function(e) {
-    hold = false;
-  };
 }
 
 function eraser(canvas) {
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
   var hold = false;
+  canvas.style.cursor = 'crosshair';
+  resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
     curX = e.clientX - canvas.offsetLeft;
@@ -289,6 +409,8 @@ function eraser(canvas) {
     prevY = curY;
     ctx.beginPath();
     ctx.moveTo(prevX, prevY);
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = "#ffffff";
   };
 
   canvas.onmousemove = function(e) {
@@ -301,105 +423,14 @@ function eraser(canvas) {
 
   canvas.onmouseup = function(e) {
     hold = false;
-  };
-
-  canvas.onmouseout = function(e) {
-    hold = false;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "red";
   };
 
   function draw() {
     ctx.lineTo(curX, curY);
     var curr_strokeStyle = ctx.strokeStyle;
-    ctx.strokeStyle = "#ffffff";
     ctx.stroke();
-    canvas_data.pencil.push({
-      "startx": prevX,
-      "starty": prevY,
-      "endx": curX,
-      "endy": curY,
-      "thick": ctx.lineWidth,
-      "color": ctx.strokeStyle
-    });
-    canvas_data.last_action = 4;
     ctx.strokeStyle = curr_strokeStyle;
   }
-}
-
-
-function undo(canvas) {
-  console.log(canvas_data.last_action);
-
-  switch (canvas_data.last_action) {
-    case 0:
-    case 4:
-      console.log("Case 0 or 4");
-      canvas_data.pencil.pop();
-      canvas_data.last_action = -1;
-      break;
-    case 1:
-      //Undo the last line drawn
-      console.log("Case 1");
-      canvas_data.line.pop();
-      canvas_data.last_action = -1;
-      break;
-    case 2:
-      //Undo the last rectangle drawn
-      console.log("Case 2");
-      canvas_data.rectangle.pop();
-      canvas_data.last_action = -1;
-      break;
-    case 3:
-      //Undo the last circle drawn
-      console.log("Case 3");
-      canvas_data.circle.pop();
-      canvas_data.last_action = -1;
-      break;
-
-    default:
-      break;
-
-  }
-
-  redraw_canvas(canvas);
-}
-
-// Function to redraw all the shapes on the canvas
-function redraw_canvas(canvas) {
-  var ctx = canvas.getContext("2d");
-  // Redraw all the shapes on the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // Redraw the pencil data
-  canvas_data.pencil.forEach(function(p) {
-    ctx.beginPath();
-    ctx.moveTo(p.startx, p.starty);
-    ctx.lineTo(p.endx, p.endy);
-    ctx.lineWidth = p.thick;
-    ctx.strokeStyle = p.color;
-    ctx.stroke();
-  });
-  // Redraw the line data
-  canvas_data.line.forEach(function(l) {
-    ctx.beginPath();
-    ctx.moveTo(l.startx, l.starty);
-    ctx.lineTo(l.endx, l.endy);
-    ctx.lineWidth = l.thick;
-    ctx.strokeStyle = l.color;
-    ctx.stroke();
-  });
-  // Redraw the rectangle data
-  canvas_data.rectangle.forEach(function(r) {
-    ctx.beginPath();
-    ctx.rect(r.startx, r.starty, r.width, r.height);
-    ctx.lineWidth = r.thick;
-    ctx.strokeStyle = r.color;
-    ctx.stroke();
-  });
-  // Redraw the circle data
-  canvas_data.circle.forEach(function(c) {
-    // "startx": prevX, "starty": prevY, "radius": curX - prevX, "thick": ctx.lineWidth, "stroke": false, "stroke_color": ctx.strokeStyle
-    ctx.beginPath();
-    ctx.arc(c.startx, c.starty, c.radius, 0, 2 * Math.PI);
-    ctx.closePath();
-    ctx.stroke();
-  });
 }

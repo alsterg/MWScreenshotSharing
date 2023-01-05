@@ -22,18 +22,15 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
             if (track.readyState != 'live' || !track.enabled || track.muted) {
                 throw Error("not ready");
             }
-            const imageCapture = new ImageCapture(track)
-            return imageCapture.grabFrame()
+            const imageCapture = new ImageCapture(track);
+            return imageCapture.grabFrame();
         }).then((bitmap) => {
             track.stop();
             canvas = document.createElement('canvas');
             canvas.width = bitmap.width;
             canvas.height = bitmap.height;
             let context = canvas.getContext('2d');
-            // For some reason the original screen gets magnified by ~1.5x, so
-            // here we downscale.
-            // TODO: However it seems that the quality drops.
-            context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, bitmap.width/1.5, bitmap.height/1.5)
+            context.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height, 0, 0, bitmap.width, bitmap.height);
             return canvas.toDataURL();
         }).then((data) => {
             // from within a message event handler, we send another message

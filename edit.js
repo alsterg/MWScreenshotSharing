@@ -53,6 +53,8 @@ function showToolbox(senderResponse, url) {
   };
 }
 
+var SCALE = 0.6;
+
 function crop(senderResponse, canvas, image, url) {
   var ctx = canvas.getContext("2d", {willReadFrequently: true});
   var curX, curY, prevX, prevY;
@@ -65,16 +67,16 @@ function crop(senderResponse, canvas, image, url) {
 
   canvas.onmousedown = function (e){
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    prevX = e.clientX - canvas.offsetLeft;
-    prevY = e.clientY - canvas.offsetTop;
+    prevX = (e.clientX - canvas.offsetLeft) / SCALE;
+    prevY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
   };
 
   canvas.onmousemove = function (e){
     if (hold){
       ctx.putImageData(img, 0, 0);
-      curX = e.clientX - canvas.offsetLeft - prevX;
-      curY = e.clientY - canvas.offsetTop - prevY;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE - prevX;
+      curY = (e.clientY - canvas.offsetTop) / SCALE - prevY;
       ctx.strokeRect(prevX, prevY, curX, curY);
       ctx.fillRect(prevX, prevY, curX, curY);
     }
@@ -84,17 +86,36 @@ function crop(senderResponse, canvas, image, url) {
     if (hold) {
       hold = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // TODO: use all available window space and align in the center X&Y
-      canvas.width = window.visualViewport.width;
-      canvas.height = window.visualViewport.height;
       ctx.drawImage(image, prevX, prevY, curX, curY, 0, 0, curX, curY);
       ctx.setLineDash([]);
       ctx.lineWidth = 2;
       ctx.strokeStyle = "red";
       showToolbox(senderResponse, url);
       arrow(canvas);
+      updateActiveButton(document.getElementById("Arrow"));
     }
   };
+}
+
+function optimizeCanvas(canvas, ctx) {
+  /* Optimize canvas
+      Source: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas#scaling_for_high_resolution_displays
+  */
+
+  // Get the DPR and size of the canvas
+  const dpr = window.devicePixelRatio;
+  const rect = canvas.getBoundingClientRect();
+
+  // Set the "actual" size of the canvas
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+
+  // Scale the context to ensure correct drawing operations
+  ctx.scale(dpr, dpr);
+
+  // Set the "drawn" size of the canvas
+  canvas.style.width = `${rect.width}px`;
+  canvas.style.height = `${rect.height}px`;
 }
 
 /* Crop & then Edit. The img data will be sent via 'senderResponse' when
@@ -109,26 +130,8 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     canvas.width = img.width
     canvas.height = img.height
 
-    /* Optimize canvas
-       Source: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Optimizing_canvas#scaling_for_high_resolution_displays
-    */
-
-    // // Get the DPR and size of the canvas
-    // const dpr = window.devicePixelRatio;
-    // const rect = canvas.getBoundingClientRect();
-
-    // // Set the "actual" size of the canvas
-    // canvas.width = rect.width * dpr;
-    // canvas.height = rect.height * dpr;
-
-    // // Scale the context to ensure correct drawing operations
-    // ctx.scale(dpr, dpr);
-
-    // // Set the "drawn" size of the canvas
-    // canvas.style.width = `${rect.width}px`;
-    // canvas.style.height = `${rect.height}px`;
-
-    //ctx.transform(0.6, 0, 0, 0.6, 0, 0);
+    optimizeCanvas(canvas, ctx);
+    ctx.transform(SCALE, 0, 0, SCALE, 0, 0);
     ctx.drawImage(img, 0, 0);
 
     crop(senderResponse, canvas, img, message.url);
@@ -223,15 +226,15 @@ function arrow(canvas) {
 
   canvas.onmousedown = function (e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    prevX = e.clientX - canvas.offsetLeft;
-    prevY = e.clientY - canvas.offsetTop;
+    prevX = (e.clientX - canvas.offsetLeft) / SCALE;
+    prevY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
   };
 
   canvas.onmousemove = function (e) {
     if (hold) {
-      curX = e.clientX - canvas.offsetLeft;
-      curY = e.clientY - canvas.offsetTop;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE;
+      curY = (e.clientY - canvas.offsetTop) / SCALE;
       ctx.putImageData(img, 0, 0);
       drawArrow(ctx, prevX, prevY, curX, curY);
     }
@@ -276,8 +279,8 @@ function text(canvas) {
   canvas.onclick = function (e) {
     if (typing) return;
     typing = true;
-    curX = e.clientX;
-    curY = e.clientY;
+    curX = e.clientX / SCALE;
+    curY = e.clientY / SCALE;
     addInput(curX, curY);
   }
 
@@ -300,8 +303,8 @@ function pencil(canvas) {
   resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
-    curX = e.clientX - canvas.offsetLeft;
-    curY = e.clientY - canvas.offsetTop;
+    curX = (e.clientX - canvas.offsetLeft) / SCALE;
+    curY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
 
     prevX = curX;
@@ -312,8 +315,8 @@ function pencil(canvas) {
 
   canvas.onmousemove = function(e) {
     if (hold) {
-      curX = e.clientX - canvas.offsetLeft;
-      curY = e.clientY - canvas.offsetTop;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE;
+      curY = (e.clientY - canvas.offsetTop) / SCALE;
       draw();
     }
   };
@@ -336,16 +339,16 @@ function line(canvas) {
 
   canvas.onmousedown = function(e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    prevX = e.clientX - canvas.offsetLeft;
-    prevY = e.clientY - canvas.offsetTop;
+    prevX = (e.clientX - canvas.offsetLeft) / SCALE;
+    prevY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
   };
 
   canvas.onmousemove = function(e) {
     if (hold) {
       ctx.putImageData(img, 0, 0);
-      curX = e.clientX - canvas.offsetLeft;
-      curY = e.clientY - canvas.offsetTop;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE;
+      curY = (e.clientY - canvas.offsetTop) / SCALE;
       ctx.beginPath();
       ctx.moveTo(prevX, prevY);
       ctx.lineTo(curX, curY);
@@ -367,16 +370,16 @@ function rectangle(canvas) {
 
   canvas.onmousedown = function(e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    prevX = e.clientX - canvas.offsetLeft;
-    prevY = e.clientY - canvas.offsetTop;
+    prevX = (e.clientX - canvas.offsetLeft) / SCALE;
+    prevY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
   };
 
   canvas.onmousemove = function(e) {
     if (hold) {
       ctx.putImageData(img, 0, 0);
-      curX = e.clientX - canvas.offsetLeft - prevX;
-      curY = e.clientY - canvas.offsetTop - prevY;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE - prevX;
+      curY = (e.clientY - canvas.offsetTop) / SCALE - prevY;
       ctx.strokeRect(prevX, prevY, curX, curY);
     }
   };
@@ -394,16 +397,16 @@ function circle(canvas) {
 
   canvas.onmousedown = function(e) {
     img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    prevX = e.clientX - canvas.offsetLeft;
-    prevY = e.clientY - canvas.offsetTop;
+    prevX = (e.clientX - canvas.offsetLeft) / SCALE;
+    prevY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
   };
 
   canvas.onmousemove = function(e) {
     if (hold) {
       ctx.putImageData(img, 0, 0);
-      curX = e.clientX - canvas.offsetLeft;
-      curY = e.clientY - canvas.offsetTop;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE;
+      curY = (e.clientY - canvas.offsetTop) / SCALE;
       ctx.beginPath();
       ctx.arc(Math.abs(curX + prevX) / 2, Math.abs(curY + prevY) / 2, Math.sqrt(Math.pow(curX - prevX, 2) + Math.pow(curY - prevY, 2)) / 2, 0, Math.PI * 2, true);
       ctx.closePath();
@@ -424,8 +427,8 @@ function eraser(canvas) {
   resetEvents(canvas);
 
   canvas.onmousedown = function(e) {
-    curX = e.clientX - canvas.offsetLeft;
-    curY = e.clientY - canvas.offsetTop;
+    curX = (e.clientX - canvas.offsetLeft) / SCALE;
+    curY = (e.clientY - canvas.offsetTop) / SCALE;
     hold = true;
 
     prevX = curX;
@@ -438,8 +441,8 @@ function eraser(canvas) {
 
   canvas.onmousemove = function(e) {
     if (hold) {
-      curX = e.clientX - canvas.offsetLeft;
-      curY = e.clientY - canvas.offsetTop;
+      curX = (e.clientX - canvas.offsetLeft) / SCALE;
+      curY = (e.clientY - canvas.offsetTop) / SCALE;
       draw();
     }
   };

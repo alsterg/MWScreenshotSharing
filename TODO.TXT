@@ -1,9 +1,14 @@
 P1:
-- generated png should only include selected area
-- the final image has a different zoom than original & edit stage
+- Decrease the height & width of the generated png img to include only the actual drawn area.
+- Align cropped image to the center so that annotations can be added on the left and above too.
 
 P2
-- Undo button.
-- Place all configuration options is a separate file.
+- Capture current tab by default, and provide a popup window to select otherwise.
+- Place all configuration options is a separate 'config' file.
+- Auto-scroll when mouse is out of canvas ('onmouseout'); this will allow capturing more than is visible.
+
+P3
 - Button to copy image instead of URL.
-- Autoscroll when mouse is out of canvas ('onmouseout').
+- Undo button.
+- Line thickness.
+- Line color.

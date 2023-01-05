@@ -255,7 +255,7 @@ function text(canvas) {
   function drawText(txt, x, y) {
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
-    ctx.font = '16px sans-serif';
+    ctx.font = '27px sans-serif';
     ctx.fillStyle = "red";
     ctx.fillText(txt, x, y);
   }
@@ -279,8 +279,8 @@ function text(canvas) {
   canvas.onclick = function (e) {
     if (typing) return;
     typing = true;
-    curX = e.clientX / SCALE;
-    curY = e.clientY / SCALE;
+    curX = e.clientX;
+    curY = e.clientY;
     addInput(curX, curY);
   }
 
@@ -288,7 +288,7 @@ function text(canvas) {
     if (typing) {
       if (e.code == "Enter") {
         typing = false
-        drawText(this.value, curX - canvas.offsetLeft, curY - canvas.offsetTop);
+        drawText(this.value, (curX - canvas.offsetLeft) / SCALE, (curY - canvas.offsetTop) / SCALE);
         document.body.removeChild(this);
         return;
       }

@@ -86,7 +86,7 @@ function crop(senderResponse, canvas, image, url) {
     if (hold) {
       hold = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, prevX, prevY, curX, curY, 0, 0, curX, curY);
+      ctx.drawImage(image, prevX, prevY, curX, curY, 0, 0, curX > prevX ? curX : prevX, curY > prevY? curY : prevY);
       ctx.setLineDash([]);
       ctx.lineWidth = 2;
       ctx.strokeStyle = "red";

@@ -1,4 +1,5 @@
 P1:
+- Fix Jenkinsfile
 - Decrease the height & width of the generated png img to include only the actual drawn area.
 - Align cropped image to the center so that annotations can be added on the left and above too.
 

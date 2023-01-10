@@ -1,7 +1,7 @@
 {
   "name": "MW ScreenSharing Extension",
   "description": "Marshall Wace extension to capture, edit and share screenshots",
-  "version": "1.0.0",
+  "version": "{MajorMinorPatch}",
   "manifest_version": 3,
   "icons": {
     "16": "/images/icon-16.png",

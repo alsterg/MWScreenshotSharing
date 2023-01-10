@@ -1,0 +1,5 @@
+<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
+  <app appid='{ExtensionId}'>
+    <updatecheck codebase='https://artifactory.mwam.local/artifactory/generic-corelib-local/MWScreenshotSharing/{CrxFile}' version='{MajorMinorPatch}' />
+  </app>
+</gupdate>

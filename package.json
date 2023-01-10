@@ -1,0 +1,13 @@
+{
+  "name": "MWScreenshotSharing",
+  "version": "0.1.8",
+  "private": true,
+  "scripts": {
+    "build": "sh build.sh",
+    "verify": "echo no tests"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "crx3": "1.1.3"
+  }
+}

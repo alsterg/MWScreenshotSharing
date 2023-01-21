@@ -1,14 +1,7 @@
 P1:
 - Fix Jenkinsfile
-- Decrease the height & width of the generated png img to include only the actual drawn area.
-- Align cropped image to the center so that annotations can be added on the left and above too.
-- Currently it is difficult to crop from the top-left side of the image (give it some margin).
-- Make the scaling factor configurable.
-- Make optional/configurable the inclusion of a link with the resultant image.
 
 P2
-- Capture current tab by default, and provide a popup window to select otherwise.
-- Place all configuration options is a separate 'config' file.
 - Auto-scroll when mouse is out of canvas ('onmouseout'); this will allow capturing more than is visible.
 
 P3
@@ -16,3 +9,4 @@ P3
 - Undo button.
 - Line thickness.
 - Line color.
+- Currently it is difficult to crop from the top-left side of the image (give it some margin).

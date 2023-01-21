@@ -13,6 +13,36 @@ function resetEvents(canvas) {
   window.onkeypress = null;
 }
 
+// Source: https://stackoverflow.com/a/22267731
+function cropCanvas(canvas) {
+  var ctx = canvas.getContext("2d");
+  var w = canvas.width, h = canvas.height,
+    pix = {x:[], y:[]},
+    imageData = ctx.getImageData(0,0,canvas.width,canvas.height),
+    x, y, index;
+
+  for (y = 0; y < h; y++) {
+    for (x = 0; x < w; x++) {
+      index = (y * w + x) * 4;
+      if (imageData.data[index+3] > 0) {
+        pix.x.push(x);
+        pix.y.push(y);
+      }
+    }
+  }
+  pix.x.sort(function(a,b){return a-b});
+  pix.y.sort(function(a,b){return a-b});
+  var n = pix.x.length-1;
+
+  w = 1 + pix.x[n] - pix.x[0];
+  h = 1 + pix.y[n] - pix.y[0];
+  var cut = ctx.getImageData(pix.x[0], pix.y[0], w, h);
+
+  canvas.width = w;
+  canvas.height = h;
+  ctx.putImageData(cut, 0, 0);
+}
+
 function showToolbox(senderResponse, url) {
   var canvas = document.getElementById("screenshot");
   var toolbox = document.getElementById("toolbox");
@@ -53,7 +83,7 @@ function showToolbox(senderResponse, url) {
   };
 }
 
-var SCALE = 0.6;
+var SCALE = 1.0;
 
 function crop(senderResponse, canvas, image, url) {
   var ctx = canvas.getContext("2d", {willReadFrequently: true});
@@ -75,10 +105,10 @@ function crop(senderResponse, canvas, image, url) {
   canvas.onmousemove = function (e){
     if (hold){
       ctx.putImageData(img, 0, 0);
-      curX = (e.clientX - canvas.offsetLeft) / SCALE - prevX;
-      curY = (e.clientY - canvas.offsetTop) / SCALE - prevY;
-      ctx.strokeRect(prevX, prevY, curX, curY);
-      ctx.fillRect(prevX, prevY, curX, curY);
+      curX = (e.clientX - canvas.offsetLeft) / SCALE;
+      curY = (e.clientY - canvas.offsetTop) / SCALE;
+      ctx.strokeRect(prevX, prevY, curX - prevX, curY - prevY);
+      ctx.fillRect(prevX, prevY, curX - prevX, curY - prevY);
     }
   };
 
@@ -86,7 +116,13 @@ function crop(senderResponse, canvas, image, url) {
     if (hold) {
       hold = false;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, prevX, prevY, curX, curY, 0, 0, curX > prevX ? curX : prevX, curY > prevY? curY : prevY);
+      if (curX < prevX) {  // prevX, prevY should be the top-left corner
+        [curX, prevX] = [prevX, curX]
+        [curY, prevY] = [prevY, curY]
+      }
+      let [widthX, widthY] = [curX - prevX, curY - prevY]
+      ctx.drawImage(image, prevX, prevY, widthX, widthY,
+                    (canvas.width-widthX)/2, (canvas.height-widthY)/2, widthX, widthY);
       ctx.setLineDash([]);
       ctx.lineWidth = 2;
       ctx.strokeStyle = "red";
@@ -130,8 +166,9 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     canvas.width = img.width
     canvas.height = img.height
 
-    optimizeCanvas(canvas, ctx);
-    ctx.transform(SCALE, 0, 0, SCALE, 0, 0);
+    //optimizeCanvas(canvas, ctx);
+    if (SCALE != 1.0)
+      ctx.transform(SCALE, 0, 0, SCALE, 0, 0);
     ctx.drawImage(img, 0, 0);
 
     crop(senderResponse, canvas, img, message.url);
@@ -145,9 +182,11 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
  */
 
 function share(canvas, senderResponse, url) {
+  cropCanvas(canvas);
   canvas.toBlob((blob) => {
     blob.arrayBuffer().then((data) => {
       var hash = asmCrypto.SHA1.hex(data);
+      var date = new Date();
       console.log("Hash: " + hash);
       let base_link = 'https://p-screenshots.prod.mwam.local/p-screenshots.files/' + hash;
 
@@ -161,6 +200,8 @@ function share(canvas, senderResponse, url) {
           headers: { 'Content-Type': 'text/html' },
           body: `
           <body>
+          <a href="${url}">${url}></a><br/>
+          ${date}<br/>
           <div>
           <table width="100%" height="100%" align="center" valign="center">
           <tr><td>

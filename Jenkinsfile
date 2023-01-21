@@ -1,4 +1,4 @@
-//import com.mwam.jenkins.build.NpmBuild
+import com.mwam.jenkins.build.GitopsBuild
 import com.mwam.jenkins.helpers.*
 
 def artifactoryPath = "/artifactory/generic-corelib-local/MWScreenshotSharing/"
@@ -7,7 +7,7 @@ publishBranches = ["master"]
 library_init()
 GitVersion.setShouldPublish(publishBranches)
 
-def npm = new NpmBuild(artifactoryPath)
+def npm = new GitopsBuild(artifactoryPath)
 def agent = new BuildAgent()
     .addGitversionContainer()
     .addContainers(npm.getBuildContainer())

@@ -1,8 +1,5 @@
-import com.mwam.jenkins.build.NpmBuild
+//import com.mwam.jenkins.build.NpmBuild
 import com.mwam.jenkins.helpers.*
-import com.mwam.jenkins.ioc.ContextRegistry
-
-ContextRegistry.registerScript(this)
 
 def artifactoryPath = "/artifactory/generic-corelib-local/MWScreenshotSharing/"
 publishBranches = ["master"]
@@ -53,7 +50,7 @@ agent.RunInAgent {
               passwordVariable: "artPass")]) {
           steps.sh(label: 'Publish - push', script: """
             cd buildArtifacts && find . -name *.crx -type f -exec \
-            curl -X PUT -H "X-Requested-With: XMLHttpRequest" -u ${steps.artUser}:${steps.artPass} -T {} "https://artifactory.mwam.local/artifactory/generic-corelib-local/MWScreenshotSharing/{}" \;
+            curl -X PUT -H "X-Requested-With: XMLHttpRequest" -u ${steps.artUser}:${steps.artPass} -T {} "https://artifactory.mwam.local/artifactory/generic-corelib-local/MWScreenshotSharing/{}" ;
           """)
         }
       }

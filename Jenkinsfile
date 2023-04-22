@@ -24,10 +24,11 @@ agent._podSpec["spec"]["containers"].find { c -> c.name == "gitops" }["volumeMou
 agent.RunInAgent {
   stage("setup") {
     container("gitversion") {
-      sh "/tools/dotnet-gitversion > gitversion.yaml"
+      sh "/tools/dotnet-gitversion > gitversion.json"
     }
 
     container("npm") {
+      sh "npm config set strict-ssl false"
       sh "npm install"
     }
   }

@@ -166,12 +166,17 @@ chrome.runtime.onMessage.addListener((message, sender, senderResponse) => {
     canvas.width = img.width
     canvas.height = img.height
 
-    //optimizeCanvas(canvas, ctx);
-    if (SCALE != 1.0)
-      ctx.transform(SCALE, 0, 0, SCALE, 0, 0);
-    ctx.drawImage(img, 0, 0);
+    chrome.runtime.getPlatformInfo(function(info) {
+      // For some unknown reason Windows desktop will capture a 2x larger image
+      if (info.os == "win") SCALE = 0.5;
 
-    crop(senderResponse, canvas, img, message.url);
+      //optimizeCanvas(canvas, ctx);
+      if (SCALE != 1.0)
+        ctx.transform(SCALE, 0, 0, SCALE, 0, 0);
+      ctx.drawImage(img, 0, 0);
+
+      crop(senderResponse, canvas, img, message.url);
+    });
   };
   img.src = message.data;
   return true;
@@ -188,10 +193,10 @@ function share(canvas, senderResponse, url) {
       var hash = asmCrypto.SHA1.hex(data);
       var date = new Date();
       console.log("Hash: " + hash);
-      let storage_link = 'https://t-screenshots.test.mwam.local/t-screenshots.files/'
+      let storage_link = 'https://p-screenshots.prod.mwam.local/p-screenshots.files/'
       let base_link = storage_link + hash;
 
-      fetch(storage_link, {
+      fetch(storage_link, {  /* This is done in order to get the Keycloak cookie that will be used in the PUT later */
         method: 'GET',
         redirect: 'follow',
         credentials: 'include'

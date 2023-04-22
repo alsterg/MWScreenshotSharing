@@ -27,21 +27,21 @@ agent.RunInAgent {
       sh "/tools/dotnet-gitversion > gitversion.json"
     }
 
-    container("npm") {
+    container("gitops") {
       sh "npm config set strict-ssl false"
       sh "npm install"
     }
   }
 
   stage("build") {
-    container("npm") {
+    container("gitops") {
       sh "npm run build"
     }
   }
  
   if (Publish.instance.shouldPublish) {
     stage('publish') {
-      container('npm') {
+      container('gitops') {
         withCredentials([usernamePassword(
               credentialsId: this.OsEnv.getJenkinsSecret('Artifactory'),
               usernameVariable: "artUser",

@@ -48,7 +48,7 @@ agent.RunInAgent {
               passwordVariable: "artPass")]) {
           sh(label: 'Publish - push', script: """
             cd buildArtifacts && find . -name *.crx -type f -exec \
-            curl -X PUT -H "X-Requested-With: XMLHttpRequest" -u ${artUser}:${artPass} -T {} "https://artifactory.mwam.local/artifactory/generic-corelib-local/MWScreenshotSharing/{}" ;
+            curl -X PUT -H "X-Requested-With: XMLHttpRequest" -u ${artUser}:${artPass} -T {} "https://artifactory.mwam.local/artifactory/generic-corelib-local/MWScreenshotSharing/{}" \;
           """)
         }
       }

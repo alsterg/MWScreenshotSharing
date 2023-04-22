@@ -43,7 +43,7 @@ agent.RunInAgent {
     stage('publish') {
       container('gitops') {
         withCredentials([usernamePassword(
-              credentialsId: this.OsEnv.getJenkinsSecret('Artifactory'),
+              credentialsId: OpenShiftEnv.getJenkinsSecret('Artifactory'),
               usernameVariable: "artUser",
               passwordVariable: "artPass")]) {
           sh(label: 'Publish - push', script: """

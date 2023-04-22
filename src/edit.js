@@ -188,42 +188,53 @@ function share(canvas, senderResponse, url) {
       var hash = asmCrypto.SHA1.hex(data);
       var date = new Date();
       console.log("Hash: " + hash);
-      let base_link = 'https://p-screenshots.prod.mwam.local/p-screenshots.files/' + hash;
+      let storage_link = 'https://t-screenshots.test.mwam.local/t-screenshots.files/'
+      let base_link = storage_link + hash;
 
-      fetch(base_link + '.png', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'image/png' },
-        body: blob
+      fetch(storage_link, {
+        method: 'GET',
+        redirect: 'follow',
+        credentials: 'include'
       }).then((response) => {
-        fetch(base_link + '.html', {
+        fetch(base_link + '.png', {
           method: 'PUT',
-          headers: { 'Content-Type': 'text/html' },
-          body: `
-          <body>
-          <a href="${url}">${url}></a><br/>
-          ${date}<br/>
-          <div>
-          <table width="100%" height="100%" align="center" valign="center">
-          <tr><td>
-          <p style="text-align:center;">
-          <a href="${url}">
-          <img src="${hash}.png"/>
-          </a>
-          </p>
-          </td></tr>
-          </table>
-          </div>
-          </body>`
-        }).then(() => {
-          console.log('Image uploaded: ' + base_link + '.html');
-          senderResponse({success: true, link: base_link + '.html'});
+          credentials: 'include',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'image/png' },
+          body: blob
+        }).then((response) => {
+          fetch(base_link + '.html', {
+            method: 'PUT',
+            credentials: 'include',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/html' },
+            body: `
+            <body>
+            <a href="${url}">${url}></a><br/>
+            ${date}<br/>
+            <div>
+            <table width="100%" height="100%" align="center" valign="center">
+            <tr><td>
+            <p style="text-align:center;">
+            <a href="${url}">
+            <img src="${hash}.png"/>
+            </a>
+            </p>
+            </td></tr>
+            </table>
+            </div>
+            </body>`
+          }).then(() => {
+            console.log('Image uploaded: ' + base_link + '.html');
+            senderResponse({success: true, link: base_link + '.html'});
+          }).catch((error) => {
+            console.error("ERROR: " + error);
+            senderResponse({success: false, message: error.message});
+          });
         }).catch((error) => {
           console.error("ERROR: " + error);
           senderResponse({success: false, message: error.message});
         });
-      }).catch((error) => {
-        console.error("ERROR: " + error);
-        senderResponse({success: false, message: error.message});
       });
     });
   });

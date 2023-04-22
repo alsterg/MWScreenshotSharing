@@ -4,7 +4,7 @@
 MajorMinorPatch=`node -pe 'JSON.parse(process.argv[1]).MajorMinorPatch' "$(cat gitversion.json)"`
 SemVer=`node -pe 'JSON.parse(process.argv[1]).SemVer' "$(cat gitversion.json)"`
 CrxFile=MWScreenshotSharing-v${SemVer}.crx
-CrxKey=/tmp/plugin/crxkey
+CrxKey=/tmp/plugin/mwscreenshotsharing
 SrcFolder=src
 ExtensionId=jiiphahkgkejfheajligilpmgijkchba
 ArtifactsFolder=buildArtifacts
